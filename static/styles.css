@@ -176,3 +176,40 @@ footer {
     }
 }
 
+.plans {
+    display: flex;
+    flex-direction: column;   /* stack vertically */
+    gap: 20px;               /* space between plans */
+    align-items: stretch;    /* make all plan boxes same width */
+    max-width: 400px;        /* optional: center nicely */
+    margin: 0 auto;          /* center on page */
+}
+
+.plan {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    background: #fafafa;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.plan button {
+    width: 100%;            /* make all buttons same width */
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #800080, #ff1493);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.plan button:disabled {
+    background: #aaa;       /* style for Current Plan button */
+    cursor: not-allowed;
+}
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
