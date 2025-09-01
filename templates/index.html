@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BiteRight Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Navbar / Main Menu -->
+    <div class="navbar">
+        <h1>BiteRight</h1>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">Dashboard</a>
+            <a href="#">Profile</a>
+            <a href="#">Reports</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Welcome, {{ username }}!</h2>
+
+        <!-- AI Daily Tip -->
+        <div class="alert success">
+            <strong>Daily Tip:</strong> {{ daily_tip }}
+        </div>
+
+        <!-- Log Meal Form -->
+        <form action="{{ url_for('log_meal') }}" method="POST">
+            <h3>Log a Meal</h3>
+            <input type="text" name="food_item" placeholder="Food name" required>
+            <button type="submit">Add Meal</button>
+        </form>
+
+        <!-- Log Drink Form -->
+        <form action="{{ url_for('log_drink') }}" method="POST">
+            <h3>Log a Drink</h3>
+            <input type="text" name="drink_name" placeholder="Drink name" required>
+            <input type="number" name="volume_ml" placeholder="Volume (ml)" required>
+            <input type="number" step="0.01" name="calories" placeholder="Calories" required>
+            <input type="number" step="0.01" name="sugar_g" placeholder="Sugar (g)" required>
+            <button type="submit">Add Drink</button>
+        </form>
+
+        <!-- Summary Table -->
+        <h3>Today's Consumption</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Calories</th>
+                    <th>Protein</th>
+                    <th>Fat / Sugar</th>
+                    <th>Suggestion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for meal in meals %}
+                <tr>
+                    <td>{{ meal.food_item }}</td>
+                    <td>{{ meal.calories }}</td>
+                    <td>{{ meal.protein }}</td>
+                    <td>{{ meal.fat }}</td>
+                    <td>{{ meal.suggestion }}</td>
+                </tr>
+                {% endfor %}
+                {% for drink in drinks %}
+                <tr>
+                    <td>{{ drink.drink_name }}</td>
+                    <td>{{ drink.calories }}</td>
+                    <td>-</td>
+                    <td>{{ drink.sugar_g }}</td>
+                    <td>-</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <h3>Totals</h3>
+        <p>Calories: {{ total_calories }}</p>
+        <p>Protein: {{ total_protein }}</p>
+        <p>Fat: {{ total_fat }}</p>
+    </div>
+
+    <!-- Subscription Plans -->
+        <h2>Choose Your Plan</h2>
+        <div class="plans">
+            <!-- Free Plan -->
+            <div class="plan">
+                <h3>Free Plan</h3>
+                <p>✅ Track up to 5 meals/drinks per week</p>
+                <p>❌ No AI assistant</p>
+                <p>❌ Limited reporting</p>
+                <button disabled>Current Plan</button>
+            </div>
+
+            <!-- Basic Plan -->
+            <div class="plan">
+                <h3>Basic Plan - $7/month</h3>
+                <p>✅ Track up to 18 meals per day</p>
+                <p>❌ No AI assistant</p>
+                <p>✅ Basic reports</p>
+                <form action="{{ url_for('checkout') }}" method="POST">
+                    <input type="hidden" name="amount" value="7">
+                    <input type="hidden" name="email" value="{{ session['username'] }}@example.com">
+                    <button type="submit">Subscribe</button>
+                </form>
+            </div>
+
+            <!-- Premium Plan -->
+            <div class="plan">
+                <h3>Premium Plan - $20/month</h3>
+                <p>✅ Unlimited meal & drink tracking</p>
+                <p>✅ AI Diet Assistant (chatbot)</p>
+                <p>✅ Advanced reports</p>
+                <form action="{{ url_for('checkout') }}" method="POST">
+                    <input type="hidden" name="amount" value="20">
+                    <input type="hidden" name="email" value="{{ session['username'] }}@example.com">
+                    <button type="submit">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    
+    <footer>
+        &copy; 2025 BiteRight | Healthy Living, Simplified
+    </footer>
+</body>
+</html>
+
