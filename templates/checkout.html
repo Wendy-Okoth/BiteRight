@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg border-0 rounded-3">
+        <div class="card-header bg-primary text-white text-center">
+          <h4>Checkout</h4>
+        </div>
+        <div class="card-body text-center">
+          <p class="mb-4">
+            Support <strong>BiteRight</strong> and unlock premium features 🎉
+          </p>
+          <p class="text-muted">
+            Click the button below to proceed with a secure payment via Flutterwave.
+          </p>
+
+          <!-- Flutterwave Inline Payment Button -->
+          <button 
+            type="button" 
+            class="btn btn-success btn-lg px-4"
+            onclick="makePayment()">
+            Pay Now
+          </button>
+        </div>
+        <div class="card-footer text-center text-muted">
+          Transactions are secured with SSL 🔒
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flutterwave Inline JS -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<script>
+function makePayment() {
+    FlutterwaveCheckout({
+        public_key: "{{ FLW_PUBLIC_KEY }}",  
+        tx_ref: "tx-" + Date.now(),
+        amount: 500,  // change to your price
+        currency: "KES",  // or KES/NGN depending on region
+        payment_options: "card, mobilemoney, ussd",
+        customer: {
+            email: "user@example.com",
+            phone_number: "07100000000",
+            name: "{{ session['username'] }}",
+        },
+        callback: function (data) {
+            console.log("Payment complete:", data);
+            
+            // Send transaction ID to backend for verification
+            fetch("/verify-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ transaction_id: data.transaction_id })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === "success") {
+                    alert("✅ Payment successful!");
+                    window.location.href = "/";
+                } else {
+                    alert("⚠️ Payment verification failed.");
+                }
+            });
+        },
+        onclose: function() {
+            alert("Payment window closed.");
+        },
+    });
+}
+</script>
+
+
+{% endblock %}
+
+

@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -320,69 +320,26 @@ def log_drink():
     return redirect(url_for("index"))
 
 # ------------------ FLUTTERWAVE PAYMENT ROUTES ------------------
-@app.route("/checkout", methods=["GET", "POST"])
+
+@app.route("/checkout")
 def checkout():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    if request.method == "POST":
-        amount = request.form.get("amount")
-        email = request.form.get("email")
-        name = session.get("username", "User")
-
-        headers = {
-            "Authorization": f"Bearer {FLW_SECRET_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        data = {
-            "tx_ref": f"biteright-{session['user_id']}-{date.today()}",
-            "amount": amount,
-            "currency": "KES",  # You can switch to USD, NGN, etc.
-            "redirect_url": url_for("payment_callback", _external=True),
-            "customer": {
-                "email": email,
-                "name": name
-            },
-            "customizations": {
-                "title": "BiteRight Premium",
-                "description": "Support our app & unlock extra features 🎉"
-            }
-        }
-
-        response = requests.post(f"{FLW_BASE_URL}/payments", headers=headers, json=data)
-        result = response.json()
-
-        if result.get("status") == "success":
-            return redirect(result["data"]["link"])
-        else:
-            flash("⚠️ Payment initialization failed.", "danger")
-            return redirect(url_for("checkout"))
-
-    return render_template("checkout.html")
+    return render_template("checkout.html", FLW_PUBLIC_KEY=FLW_PUBLIC_KEY)
 
 
-@app.route("/payment_callback")
-def payment_callback():
-    status = request.args.get("status")
-    tx_ref = request.args.get("tx_ref")
-    transaction_id = request.args.get("transaction_id")
+@app.route("/verify-payment", methods=["POST"])
+def verify_payment():
+    data = request.json
+    transaction_id = data.get("transaction_id")
 
-    if status == "successful":
-        # Verify payment with Flutterwave
-        headers = {"Authorization": f"Bearer {FLW_SECRET_KEY}"}
-        verify_url = f"{FLW_BASE_URL}/transactions/{transaction_id}/verify"
-        response = requests.get(verify_url, headers=headers)
-        result = response.json()
+    url = f"https://api.flutterwave.com/v3/transactions/{transaction_id}/verify"
+    headers = {"Authorization": f"Bearer {FLW_SECRET_KEY}"}
 
-        if result.get("status") == "success":
-            flash("✅ Payment successful! Thank you for supporting BiteRight.", "success")
-        else:
-            flash("⚠️ Payment verification failed.", "danger")
-    else:
-        flash("❌ Payment was not completed.", "danger")
+    response = requests.get(url, headers=headers)
+    return jsonify(response.json())
 
-    return redirect(url_for("index"))
 
 # ------------------ RUN APP ------------------
 if __name__ == "__main__":
