@@ -16,11 +16,11 @@
             Click the button below to proceed with a secure payment via Flutterwave.
           </p>
 
-          <!-- Flutterwave Inline Payment Button -->
+          <!-- Pay button (not inside a form) -->
           <button 
-            type="button" 
-            class="btn btn-success btn-lg px-4"
-            onclick="makePayment()">
+            type="button"
+            id="payButton"
+            class="btn btn-success btn-lg px-4">
             Pay Now
           </button>
         </div>
@@ -35,22 +35,27 @@
 <!-- Flutterwave Inline JS -->
 <script src="https://checkout.flutterwave.com/v3.js"></script>
 <script>
-function makePayment() {
+document.getElementById("payButton").addEventListener("click", function() {
+    console.log("🚀 makePayment() called");
     FlutterwaveCheckout({
         public_key: "{{ FLW_PUBLIC_KEY }}",  
-        tx_ref: "tx-" + Date.now(),
-        amount: 500,  // change to your price
-        currency: "KES",  // or KES/NGN depending on region
+        tx_ref: "biteright-" + Date.now(),
+        amount: 500,
+        currency: "KES",
         payment_options: "card, mobilemoney, ussd",
         customer: {
-            email: "user@example.com",
+            email: "{{ session.get('email', 'user@example.com') }}",
             phone_number: "07100000000",
-            name: "{{ session['username'] }}",
+            name: "{{ session.get('username', 'BiteRight User') }}"
+        },
+        customizations: {
+            title: "BiteRight Premium",
+            description: "Access exclusive features and support us 💚",
+            logo: "{{ url_for('static', filename='images/logo.png') }}"
         },
         callback: function (data) {
-            console.log("Payment complete:", data);
-            
-            // Send transaction ID to backend for verification
+            console.log("✅ Payment complete:", data);
+
             fetch("/verify-payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -67,13 +72,10 @@ function makePayment() {
             });
         },
         onclose: function() {
-            alert("Payment window closed.");
+            console.log("❌ Payment popup closed");
         },
     });
-}
+});
 </script>
 
-
 {% endblock %}
-
-

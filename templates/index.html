@@ -101,11 +101,11 @@
                 <p>✅ Track up to 18 meals per day</p>
                 <p>❌ No AI assistant</p>
                 <p>✅ Basic reports</p>
-                <form action="{{ url_for('checkout') }}" method="POST">
-                    <input type="hidden" name="amount" value="7">
-                    <input type="hidden" name="email" value="{{ session['username'] }}@example.com">
-                    <button type="submit">Subscribe</button>
-                </form>
+                <button type="button" class="btn btn-primary"
+        onclick="window.location.href='{{ url_for('checkout') }}'">
+    Subscribe
+           </button>
+
             </div>
 
             <!-- Premium Plan -->
@@ -114,11 +114,9 @@
                 <p>✅ Unlimited meal & drink tracking</p>
                 <p>✅ AI Diet Assistant (chatbot)</p>
                 <p>✅ Advanced reports</p>
-                <form action="{{ url_for('checkout') }}" method="POST">
-                    <input type="hidden" name="amount" value="20">
-                    <input type="hidden" name="email" value="{{ session['username'] }}@example.com">
-                    <button type="submit">Subscribe</button>
-                </form>
+                <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('checkout') }}'">
+                 Subscribe
+                </button>
             </div>
         </div>
     

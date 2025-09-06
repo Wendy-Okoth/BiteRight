@@ -319,14 +319,25 @@ def log_drink():
             print(f"⚠️ Error logging drink: {e}")
     return redirect(url_for("index"))
 
-# ------------------ FLUTTERWAVE PAYMENT ROUTES ------------------
-
-@app.route("/checkout")
+# ------------------ FLUTTERWAVE PAYMENT ROUTES -----------------
+@app.route("/checkout", methods=["GET", "POST"])
 def checkout():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    if request.method == "POST":
+        amount = request.form.get("amount", 0)
+        email = request.form.get("email", "user@example.com")
+        return render_template(
+            "checkout.html",
+            FLW_PUBLIC_KEY=FLW_PUBLIC_KEY,
+            amount=amount,
+            email=email
+        )
+
+    # ✅ Handle GET requests cleanly here
     return render_template("checkout.html", FLW_PUBLIC_KEY=FLW_PUBLIC_KEY)
+
 
 
 @app.route("/verify-payment", methods=["POST"])
