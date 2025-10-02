@@ -14,11 +14,9 @@ import requests
 #client = OpenAI()
 
 # Flutterwave API credentials (TEST MODE)
-FLW_PUBLIC_KEY = "9cdad2c1-a9e8-439c-a1bc-32b3d57020d5"
-FLW_SECRET_KEY = "q1cp4vxcSdf1TEMFkIFnGOzZ9Xh6lk88"
-FLW_ENCRYPTION_KEY = "8QadcNctW1gTG+4PKLnyljfhAt0P2CIwNYSP9oz7fWs="
-FLW_BASE_URL = "https://api.flutterwave.com/v3"
-
+PAYSTACK_PUBLIC_KEY = "pk_test_d1435a1fe37e4d2ee9340f10e455ba037f7b0cc5"
+PAYSTACK_SECRET_KEY = "sk_test_fb568f148fb4bd47af7f7c5043c699351cada724"
+PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify/{}"
 
 
 # ------------------ Load Environment ------------------
@@ -319,37 +317,70 @@ def log_drink():
             print(f"⚠️ Error logging drink: {e}")
     return redirect(url_for("index"))
 
-# ------------------ FLUTTERWAVE PAYMENT ROUTES -----------------
+# ------------------ PAYSTACK PAYMENT ROUTES -----------------
 @app.route("/checkout", methods=["GET", "POST"])
 def checkout():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    # If subscription button posts amount/email to /checkout, render checkout with those values
     if request.method == "POST":
         amount = request.form.get("amount", 0)
-        email = request.form.get("email", "user@example.com")
+        email = request.form.get("email") or session.get("email") or f"{session.get('username','user')}@example.com"
+        try:
+            # normalize amount to number (frontend will multiply by 100 later)
+            amount = float(amount)
+        except Exception:
+            amount = 500.0
         return render_template(
             "checkout.html",
-            FLW_PUBLIC_KEY=FLW_PUBLIC_KEY,
+            PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY,
             amount=amount,
             email=email
         )
 
-    # ✅ Handle GET requests cleanly here
-    return render_template("checkout.html", FLW_PUBLIC_KEY=FLW_PUBLIC_KEY)
-
+    # GET -> show checkout (default values)
+    return render_template(
+        "checkout.html",
+        PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY,
+        amount=500,
+        email=session.get("email") or f"{session.get('username','user')}@example.com"
+    )
 
 
 @app.route("/verify-payment", methods=["POST"])
 def verify_payment():
-    data = request.json
-    transaction_id = data.get("transaction_id")
+    """
+    Called by frontend after Paystack returns a reference.
+    Expects JSON: { "reference": "<paystack_reference>" }
+    """
+    data = request.get_json() or {}
+    reference = data.get("reference")
+    if not reference:
+        return jsonify({"status": "error", "message": "missing reference"}), 400
 
-    url = f"https://api.flutterwave.com/v3/transactions/{transaction_id}/verify"
-    headers = {"Authorization": f"Bearer {FLW_SECRET_KEY}"}
+    headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+    url = PAYSTACK_VERIFY_URL.format(reference)
 
-    response = requests.get(url, headers=headers)
-    return jsonify(response.json())
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        payload = resp.json()
+    except requests.RequestException as e:
+        return jsonify({"status": "error", "message": f"verification request failed: {e}"}), 502
+
+    # Paystack returns payload['status'] True and payload['data']['status'] == 'success'
+    ok = payload.get("status") is True and payload.get("data", {}).get("status") == "success"
+    if ok:
+        # Optionally: save payment/upgrade plan in DB here.
+        # Example:
+        # cur = mysql.connection.cursor()
+        # cur.execute("INSERT INTO payments (user_id, reference, amount, status) VALUES (%s, %s, %s, %s)",
+        #             (session['user_id'], reference, payload['data']['amount']/100, 'success'))
+        # mysql.connection.commit()
+        return jsonify({"status": "success", "data": payload.get("data")})
+    else:
+        return jsonify({"status": "failed", "data": payload}), 400
 
 
 # ------------------ RUN APP ------------------

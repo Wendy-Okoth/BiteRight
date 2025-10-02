@@ -3,79 +3,109 @@
 
 <div class="container mt-5">
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8 col-lg-6">
       <div class="card shadow-lg border-0 rounded-3">
-        <div class="card-header bg-primary text-white text-center">
-          <h4>Checkout</h4>
+        <div class="card-header text-center" style="background:linear-gradient(90deg,#fff,#ffccd9);">
+          <h4 style="color:#800040; margin:0;">BiteRight Premium</h4>
         </div>
+
         <div class="card-body text-center">
-          <p class="mb-4">
-            Support <strong>BiteRight</strong> and unlock premium features 🎉
-          </p>
-          <p class="text-muted">
-            Click the button below to proceed with a secure payment via Flutterwave.
+          <p class="mb-2">
+            <strong>{{ email|e }}</strong>
           </p>
 
-          <!-- Pay button (not inside a form) -->
-          <button 
-            type="button"
-            id="payButton"
-            class="btn btn-success btn-lg px-4">
+          <p class="mb-4">Pay <strong>{{ amount }}</strong> KES to subscribe.</p>
+
+          <!-- Paystack Payment Button -->
+          <button id="payButton" type="button" class="btn btn-lg" style="background:#b30059;color:#fff;padding:12px 28px;border-radius:8px;">
             Pay Now
           </button>
+
+          <p class="mt-3 text-muted small">Transactions secured by Paystack</p>
         </div>
+
         <div class="card-footer text-center text-muted">
-          Transactions are secured with SSL 🔒
+          Thank you for supporting BiteRight 🎉
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Flutterwave Inline JS -->
-<script src="https://checkout.flutterwave.com/v3.js"></script>
-<script>
-document.getElementById("payButton").addEventListener("click", function() {
-    console.log("🚀 makePayment() called");
-    FlutterwaveCheckout({
-        public_key: "{{ FLW_PUBLIC_KEY }}",  
-        tx_ref: "biteright-" + Date.now(),
-        amount: 500,
-        currency: "KES",
-        payment_options: "card, mobilemoney, ussd",
-        customer: {
-            email: "{{ session.get('email', 'user@example.com') }}",
-            phone_number: "07100000000",
-            name: "{{ session.get('username', 'BiteRight User') }}"
-        },
-        customizations: {
-            title: "BiteRight Premium",
-            description: "Access exclusive features and support us 💚",
-            logo: "{{ url_for('static', filename='images/logo.png') }}"
-        },
-        callback: function (data) {
-            console.log("✅ Payment complete:", data);
+<!-- Paystack Inline JS -->
+<!-- Paystack Inline JS -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
 
-            fetch("/verify-payment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ transaction_id: data.transaction_id })
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === "success") {
-                    alert("✅ Payment successful!");
-                    window.location.href = "/";
-                } else {
-                    alert("⚠️ Payment verification failed.");
-                }
-            });
-        },
-        onclose: function() {
-            console.log("❌ Payment popup closed");
-        },
+<div class="checkout-container">
+  <h2>BiteRight Premium</h2>
+  <p><strong>{{ email }}</strong></p>
+  <p>KES {{ amount }}</p>
+
+  <button id="payButton" class="btn btn-success">Pay Now</button>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const payButton = document.getElementById("payButton");
+
+  payButton.addEventListener("click", function () {
+    console.log("🚀 Paystack payment starting...");
+
+    // ✅ Injected safely from Flask (always strings/numbers)
+    const paystackKey = "{{ PAYSTACK_PUBLIC_KEY }}";
+    const customerEmail = "{{ email|e }}";
+    const amountKobo = Number("{{ amount|int }}") * 100;  // Ensure it's a number
+    const customerName = "{{ session.get('username', 'BiteRight User') }}";
+
+    const handler = PaystackPop.setup({
+      key: paystackKey,
+      email: customerEmail,
+      amount: amountKobo,
+      currency: "KES", // ⚠️ Ensure your Paystack account supports KES
+      ref: "biteright-" + Date.now(),
+      metadata: {
+        custom_fields: [
+          {
+            display_name: "Customer Name",
+            variable_name: "customer_name",
+            value: customerName
+          }
+        ]
+      },
+      callback: function (response) {
+        console.log("✅ Paystack callback:", response);
+
+        // Send reference to backend for verification
+        fetch("/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reference: response.reference })
+        })
+        .then(r => r.json())
+        .then(res => {
+          console.log("verify-payment response:", res);
+          if (res.status === "success") {
+            alert("✅ Payment successful! Thank you.");
+            window.location.href = "/";
+          } else {
+            alert("⚠️ Payment verification failed. See console for details.");
+            console.log("verify failed:", res);
+          }
+        })
+        .catch(err => {
+          console.error("verify-payment error:", err);
+          alert("⚠️ Error verifying payment.");
+        });
+      },
+      onClose: function () {
+        console.log("❌ Payment popup closed");
+      }
     });
+
+    handler.openIframe();
+  });
 });
 </script>
 
 {% endblock %}
+
